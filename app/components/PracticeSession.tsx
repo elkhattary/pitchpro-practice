@@ -23,6 +23,8 @@ export default function PracticeSession({
     typeof generateFeedback
   > | null>(null);
   const [error, setError] = useState("");
+  const [analysisError, setAnalysisError] = useState("");
+  const [hasRetried, setHasRetried] = useState(false);
   const [results, setResults] = useState<QuestionResult[]>([]);
 
   const handleSubmit = () => {
@@ -39,11 +41,27 @@ export default function PracticeSession({
     }
 
     setError("");
+    setAnalysisError("");
     setFeedback(null);
     setIsLoading(true);
 
     setTimeout(() => {
-      const generatedFeedback = generateFeedback(response);
+      const shouldFail =
+  response.toLowerCase().includes("simulate error") &&
+  !hasRetried;
+
+if (shouldFail) {
+  setAnalysisError(
+    "We couldn't analyze your response. Your answer is safe — please try again."
+  );
+  setHasRetried(true);
+  setIsLoading(false);
+  return;
+}
+      const generatedFeedback = generateFeedback(
+  response,
+  scenario.questions[currentQuestion]
+);
 
       const nextResult: QuestionResult = {
         question: scenario.questions[currentQuestion],
@@ -63,6 +81,8 @@ export default function PracticeSession({
       setResponse("");
       setFeedback(null);
       setError("");
+      setAnalysisError("");
+      setHasRetried(false);
       return;
     }
 
@@ -163,6 +183,25 @@ export default function PracticeSession({
               {error}
             </div>
           )}
+          {analysisError && (
+  <div className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-5">
+    <p className="font-medium text-amber-200">
+      Analysis failed
+    </p>
+
+    <p className="mt-2 text-sm leading-6 text-amber-100/80">
+      {analysisError}
+    </p>
+
+    <button
+      type="button"
+      onClick={handleSubmit}
+      className="mt-4 rounded-lg border border-amber-400/30 px-4 py-2 text-sm font-semibold text-amber-100 transition hover:bg-amber-400/10"
+    >
+      Try again
+    </button>
+  </div>
+)}
 
           {isLoading && (
             <div className="mt-6 rounded-xl border border-slate-700 bg-slate-950 p-5">
